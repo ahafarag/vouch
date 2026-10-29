@@ -9,8 +9,7 @@ export function remaining(m: db.Milestone) {
 }
 
 function context(milestoneId: string) {
-  const m = db.getMilestone(milestoneId);
-  if (!m) throw new Error("Milestone not found");
+  const m = db.requireMilestone(milestoneId);
   const p = db.getProject(m.project_id)!;
   return { m, p };
 }

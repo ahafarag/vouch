@@ -72,7 +72,7 @@ export async function completeFundingAction(milestoneId: string, orderId: string
 
 export async function submitWorkAction(milestoneId: string, note: string, links: string[], image: string | null) {
   const r = await attempt(async () => {
-    const m = db.getMilestone(milestoneId)!;
+    const m = db.requireMilestone(milestoneId);
     const p = db.getProject(m.project_id)!;
     if (!["funded", "revision"].includes(m.status)) throw new Error(`Cannot submit while milestone is ${m.status}`);
     const subId = db.addSubmission(milestoneId, note, links, image);
@@ -111,7 +111,7 @@ export async function submitWorkAction(milestoneId: string, note: string, links:
 
 export async function clientReleaseAction(milestoneId: string) {
   const r = await attempt(async () => {
-    const m = db.getMilestone(milestoneId)!;
+    const m = db.requireMilestone(milestoneId);
     await escrow.release(milestoneId, escrow.remaining(m), `Approved by client: ${m.title}`, "client");
   });
   refresh(milestoneId);
@@ -120,7 +120,7 @@ export async function clientReleaseAction(milestoneId: string) {
 
 export async function requestRevisionAction(milestoneId: string, feedback: string) {
   const r = await attempt(async () => {
-    const m = db.getMilestone(milestoneId)!;
+    const m = db.requireMilestone(milestoneId);
     db.updateMilestone(milestoneId, { status: "revision" });
     db.logEvent({ project_id: m.project_id, milestone_id: milestoneId, type: "revision_requested", actor: "client", message: `Client requested changes: ${feedback}` });
   });
@@ -130,7 +130,7 @@ export async function requestRevisionAction(milestoneId: string, feedback: strin
 
 export async function openDisputeAction(milestoneId: string, statement: string) {
   const r = await attempt(async () => {
-    const m = db.getMilestone(milestoneId)!;
+    const m = db.requireMilestone(milestoneId);
     db.openDispute(milestoneId, statement);
     db.updateMilestone(milestoneId, { status: "disputed" });
     db.logEvent({ project_id: m.project_id, milestone_id: milestoneId, type: "dispute_opened", actor: "client", message: `Dispute opened: ${statement}` });
@@ -141,7 +141,7 @@ export async function openDisputeAction(milestoneId: string, statement: string) 
 
 export async function freelancerStatementAction(milestoneId: string, statement: string) {
   const r = await attempt(async () => {
-    const m = db.getMilestone(milestoneId)!;
+    const m = db.requireMilestone(milestoneId);
     const d = db.getDispute(milestoneId)!;
     db.addStatement(d.id, [...d.statements, { party: "freelancer", text: statement, created_at: new Date().toISOString() }]);
     db.logEvent({ project_id: m.project_id, milestone_id: milestoneId, type: "dispute_response", actor: "freelancer", message: `Freelancer responded: ${statement}` });
@@ -152,7 +152,7 @@ export async function freelancerStatementAction(milestoneId: string, statement: 
 
 export async function mediateAction(milestoneId: string) {
   const r = await attempt(async () => {
-    const m = db.getMilestone(milestoneId)!;
+    const m = db.requireMilestone(milestoneId);
     const p = db.getProject(m.project_id)!;
     const d = db.getDispute(milestoneId)!;
     const ruling = await mediate(milestoneId);

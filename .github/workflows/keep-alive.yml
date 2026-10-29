@@ -1,0 +1,16 @@
+# Render's free plan puts the service to sleep after 15 minutes without traffic and wipes
+# its disk (and the SQLite demo data) on wake. Ping it so judges find it awake.
+# GitHub may delay scheduled runs, so ping every 5 minutes to stay inside the 15-minute window.
+name: Keep Render demo awake
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: curl -fsS -o /dev/null --retry 3 --max-time 60 -w "%{http_code}\n" "${{ vars.KEEPALIVE_URL || 'https://vouch-crnw.onrender.com/' }}"

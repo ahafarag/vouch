@@ -202,6 +202,17 @@ export function getMilestone(id: string): Milestone | undefined {
   return r ? toMilestone(r) : undefined;
 }
 
+// The free Render instance wipes its disk when it sleeps, so a page left open can point at a
+// milestone that no longer exists. Say that instead of a bare "not found".
+export const DEMO_RESET_MESSAGE =
+  "This contract no longer exists: the demo server resets its data after 15 minutes of inactivity. Go to the home page and load the demo contract again.";
+
+export function requireMilestone(id: string): Milestone {
+  const m = getMilestone(id);
+  if (!m) throw new Error(DEMO_RESET_MESSAGE);
+  return m;
+}
+
 export function updateMilestone(id: string, patch: Partial<Omit<Milestone, "id" | "criteria">>) {
   const keys = Object.keys(patch);
   if (!keys.length) return;
