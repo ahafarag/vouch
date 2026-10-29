@@ -94,14 +94,7 @@ export type LedgerEvent = {
   created_at: string;
 };
 
-const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "vouch.db");
-mkdirSync(path.dirname(dbPath), { recursive: true });
-
-const g = globalThis as unknown as { __vouchDb?: DatabaseSync };
-const db = g.__vouchDb ?? new DatabaseSync(dbPath);
-g.__vouchDb = db;
-
-db.exec(`
+const SCHEMA = `
   PRAGMA journal_mode = WAL;
   CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY, title TEXT, summary TEXT,
@@ -124,7 +117,20 @@ db.exec(`
     id TEXT PRIMARY KEY, project_id TEXT, milestone_id TEXT, type TEXT, actor TEXT,
     message TEXT, amount REAL, paypal_ref TEXT, created_at TEXT
   );
-`);
+`;
+
+const g = globalThis as unknown as { __vouchDb?: DatabaseSync };
+
+// Opened on first query, not at import: `next build` imports this module from several workers
+// at once, and on a fresh disk they race to create the schema and fail with "database is locked".
+function conn(): DatabaseSync {
+  if (g.__vouchDb) return g.__vouchDb;
+  const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "vouch.db");
+  mkdirSync(path.dirname(dbPath), { recursive: true });
+  const db = new DatabaseSync(dbPath, { timeout: 5000 });
+  db.exec(SCHEMA);
+  return (g.__vouchDb = db);
+}
 
 const now = () => new Date().toISOString();
 type Row = Record<string, unknown>;
@@ -154,10 +160,10 @@ export function createProject(
   milestones: Pick<Milestone, "title" | "description" | "amount" | "due_days" | "criteria">[],
 ): string {
   const id = randomUUID().slice(0, 8);
-  db.prepare(
+  conn().prepare(
     `INSERT INTO projects VALUES (?,?,?,?,?,?,?,?,?,?)`,
   ).run(id, p.title, p.summary, p.client_name, p.client_email, p.freelancer_name, p.freelancer_email, p.currency, p.auto_release, now());
-  const ins = db.prepare(
+  const ins = conn().prepare(
     `INSERT INTO milestones (id, project_id, idx, title, description, amount, due_days, criteria, status)
      VALUES (?,?,?,?,?,?,?,?, 'draft')`,
   );
@@ -169,7 +175,7 @@ export function createProject(
 }
 
 export function listProjects(): (Project & { total: number; released: number; escrowed: number })[] {
-  return db
+  return conn()
     .prepare(
       `SELECT p.*,
          COALESCE(SUM(m.amount),0) AS total,
@@ -183,23 +189,23 @@ export function listProjects(): (Project & { total: number; released: number; es
 }
 
 export function getProject(id: string): Project | undefined {
-  const r = db.prepare(`SELECT * FROM projects WHERE id = ?`).get(id);
+  const r = conn().prepare(`SELECT * FROM projects WHERE id = ?`).get(id);
   return r ? plain<Project>(r) : undefined;
 }
 
 export function getMilestones(projectId: string): Milestone[] {
-  return (db.prepare(`SELECT * FROM milestones WHERE project_id = ? ORDER BY idx`).all(projectId) as Row[]).map(toMilestone);
+  return (conn().prepare(`SELECT * FROM milestones WHERE project_id = ? ORDER BY idx`).all(projectId) as Row[]).map(toMilestone);
 }
 
 export function getMilestone(id: string): Milestone | undefined {
-  const r = db.prepare(`SELECT * FROM milestones WHERE id = ?`).get(id) as Row | undefined;
+  const r = conn().prepare(`SELECT * FROM milestones WHERE id = ?`).get(id) as Row | undefined;
   return r ? toMilestone(r) : undefined;
 }
 
 export function updateMilestone(id: string, patch: Partial<Omit<Milestone, "id" | "criteria">>) {
   const keys = Object.keys(patch);
   if (!keys.length) return;
-  db.prepare(`UPDATE milestones SET ${keys.map((k) => `${k} = ?`).join(", ")} WHERE id = ?`).run(
+  conn().prepare(`UPDATE milestones SET ${keys.map((k) => `${k} = ?`).join(", ")} WHERE id = ?`).run(
     ...(Object.values(patch) as (string | number | null)[]),
     id,
   );
@@ -207,20 +213,20 @@ export function updateMilestone(id: string, patch: Partial<Omit<Milestone, "id" 
 
 export function addSubmission(milestoneId: string, note: string, links: string[], image: string | null): string {
   const id = randomUUID().slice(0, 8);
-  db.prepare(`INSERT INTO submissions VALUES (?,?,?,?,?,NULL,?)`).run(id, milestoneId, note, JSON.stringify(links), image, now());
+  conn().prepare(`INSERT INTO submissions VALUES (?,?,?,?,?,NULL,?)`).run(id, milestoneId, note, JSON.stringify(links), image, now());
   return id;
 }
 
 export function setVerdict(submissionId: string, verdict: Verdict) {
-  db.prepare(`UPDATE submissions SET verdict = ? WHERE id = ?`).run(JSON.stringify(verdict), submissionId);
+  conn().prepare(`UPDATE submissions SET verdict = ? WHERE id = ?`).run(JSON.stringify(verdict), submissionId);
 }
 
 export function getSubmissions(milestoneId: string): Submission[] {
-  return (db.prepare(`SELECT * FROM submissions WHERE milestone_id = ? ORDER BY created_at`).all(milestoneId) as Row[]).map(toSubmission);
+  return (conn().prepare(`SELECT * FROM submissions WHERE milestone_id = ? ORDER BY created_at`).all(milestoneId) as Row[]).map(toSubmission);
 }
 
 export function getDispute(milestoneId: string): Dispute | undefined {
-  const r = db.prepare(`SELECT * FROM disputes WHERE milestone_id = ? ORDER BY created_at DESC LIMIT 1`).get(milestoneId) as Row | undefined;
+  const r = conn().prepare(`SELECT * FROM disputes WHERE milestone_id = ? ORDER BY created_at DESC LIMIT 1`).get(milestoneId) as Row | undefined;
   return r ? toDispute(r) : undefined;
 }
 
@@ -232,20 +238,20 @@ export function openDispute(milestoneId: string, statement: string): Dispute {
     ruling: null,
     created_at: now(),
   };
-  db.prepare(`INSERT INTO disputes VALUES (?,?,?,NULL,?)`).run(d.id, milestoneId, JSON.stringify(d.statements), d.created_at);
+  conn().prepare(`INSERT INTO disputes VALUES (?,?,?,NULL,?)`).run(d.id, milestoneId, JSON.stringify(d.statements), d.created_at);
   return d;
 }
 
 export function addStatement(disputeId: string, statements: Statement[]) {
-  db.prepare(`UPDATE disputes SET statements = ? WHERE id = ?`).run(JSON.stringify(statements), disputeId);
+  conn().prepare(`UPDATE disputes SET statements = ? WHERE id = ?`).run(JSON.stringify(statements), disputeId);
 }
 
 export function setRuling(disputeId: string, ruling: Ruling) {
-  db.prepare(`UPDATE disputes SET ruling = ? WHERE id = ?`).run(JSON.stringify(ruling), disputeId);
+  conn().prepare(`UPDATE disputes SET ruling = ? WHERE id = ?`).run(JSON.stringify(ruling), disputeId);
 }
 
 export function logEvent(e: Omit<LedgerEvent, "id" | "created_at" | "milestone_id" | "amount" | "paypal_ref"> & Partial<LedgerEvent>) {
-  db.prepare(`INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?)`).run(
+  conn().prepare(`INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?)`).run(
     randomUUID(),
     e.project_id,
     e.milestone_id ?? null,
@@ -264,5 +270,5 @@ export function getEvents(projectId?: string): (LedgerEvent & { project_title: s
                LEFT JOIN milestones m ON m.id = e.milestone_id
                ${projectId ? "WHERE e.project_id = ?" : ""}
                ORDER BY e.created_at DESC`;
-  return (projectId ? db.prepare(sql).all(projectId) : db.prepare(sql).all()).map(plain) as never;
+  return (projectId ? conn().prepare(sql).all(projectId) : conn().prepare(sql).all()).map(plain) as never;
 }
