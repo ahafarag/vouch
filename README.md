@@ -4,7 +4,9 @@
 
 > Get paid for freelance work, without needing to trust a stranger.
 
-Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) ("Build what's next with PayPal and AI"). **Status:** active development during the hackathon; all payments run in the PayPal sandbox.
+Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) ("Build what's next with PayPal and AI") by Abdelrahman Farag and Alaa Kotb. All payments run in the PayPal sandbox.
+
+**Live demo:** https://vouch-crnw.onrender.com. It's hosted on Render's free plan: if it has been idle, the first load can take up to a minute, and demo data resets when the server restarts. **Sandbox buyer login** for PayPal checkout: `sb-qcxbo35513902@personal.example.com` / `U)39&Tpb`. See the [3-minute walkthrough](#3-minute-walkthrough).
 
 **Vouch** is milestone escrow run by AI agents on top of PayPal. A client describes a job in plain English. An AI **Contract Architect** turns the brief into milestones with objective acceptance criteria. The client funds each milestone with **PayPal Checkout**, and the money is held in escrow. When the freelancer delivers, an AI **Verifier** inspects the live site, GitHub repo or screenshots against each criterion. An AI **Settlement Agent** then pays the freelancer through **PayPal Payouts**. If the parties disagree, an AI **Mediator** issues a binding ruling, and the agent splits the escrow with a partial payout plus a partial **refund**.
 
@@ -108,8 +110,8 @@ npm run dev                  # http://localhost:3000
 ### 3-minute walkthrough
 
 1. Click **Load demo contract** on the home page, or **New contract** → *Use example* → **Draft milestones with AI**.
-2. As the **client**, fund Milestone 1 with the PayPal button and log in with the sandbox buyer account.
-3. Switch to **View as freelancer**, submit a live URL (any public landing page) and click **Submit for AI review**. Watch the verifier check each criterion. If it passes, the settlement agent pays out automatically.
+2. As the **client**, fund Milestone 1 with the PayPal button and log in with the sandbox buyer account (on the live demo: `sb-qcxbo35513902@personal.example.com` / `U)39&Tpb`).
+3. Switch to **View as freelancer**, submit a live URL and click **Submit for AI review**. The app ships a sample deliverable that meets every Milestone 1 criterion: `https://vouch-crnw.onrender.com/demo/bakery.html` (or `/demo/bakery.html` on your own deployment). Watch the verifier check each criterion. If it passes, the settlement agent pays out automatically.
 4. Fund Milestone 2, submit a weak deliverable, then as the client **Open dispute**. Respond as the freelancer, then click **Request binding AI ruling** to see the split payout and refund.
 5. Open **Ledger** to see the full audit trail with PayPal capture, payout and refund IDs.
 
