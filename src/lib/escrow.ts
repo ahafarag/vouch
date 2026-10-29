@@ -66,6 +66,7 @@ export async function release(milestoneId: string, amount: number, note: string,
     idempotencyKey: `rel-${milestoneId}-${Math.round(released * 100)}`,
   });
   db.updateMilestone(milestoneId, { released });
+  db.addTransfer({ project_id: p.id, milestone_id: milestoneId, kind: "payout", paypal_id: r.batchId, amount, status: r.status });
   db.logEvent({
     project_id: p.id,
     milestone_id: milestoneId,
@@ -93,6 +94,7 @@ export async function refund(milestoneId: string, amount: number, note: string, 
     idempotencyKey: `ref-${milestoneId}-${Math.round(refunded * 100)}`,
   });
   db.updateMilestone(milestoneId, { refunded });
+  db.addTransfer({ project_id: p.id, milestone_id: milestoneId, kind: "refund", paypal_id: r.refundId, amount, status: r.status });
   db.logEvent({
     project_id: p.id,
     milestone_id: milestoneId,

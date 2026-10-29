@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { PENDING_STATUSES } from "./status";
 
 export type Criterion = { id: string; text: string };
 
@@ -82,6 +83,21 @@ export type Ruling = {
 
 export type Actor = "client" | "freelancer" | "ai" | "paypal" | "system";
 
+// One PayPal money movement out of escrow. Payouts start PENDING and PayPal settles them later,
+// so the status is kept current by webhooks and by polling PayPal (see lib/transfers.ts).
+export type Transfer = {
+  id: string;
+  project_id: string;
+  milestone_id: string;
+  kind: "payout" | "refund";
+  paypal_id: string; // payout batch id or refund id
+  item_id: string | null; // payout item id, once known
+  amount: number;
+  status: string;
+  checked_at: string;
+  created_at: string;
+};
+
 export type LedgerEvent = {
   id: string;
   project_id: string;
@@ -117,6 +133,11 @@ const SCHEMA = `
     id TEXT PRIMARY KEY, project_id TEXT, milestone_id TEXT, type TEXT, actor TEXT,
     message TEXT, amount REAL, paypal_ref TEXT, created_at TEXT
   );
+  CREATE TABLE IF NOT EXISTS transfers (
+    id TEXT PRIMARY KEY, project_id TEXT, milestone_id TEXT, kind TEXT, paypal_id TEXT UNIQUE,
+    item_id TEXT, amount REAL, status TEXT, checked_at TEXT, created_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS webhook_events (id TEXT PRIMARY KEY, type TEXT, received_at TEXT);
 `;
 
 const g = globalThis as unknown as { __vouchDb?: DatabaseSync };
@@ -275,10 +296,43 @@ export function logEvent(e: Omit<LedgerEvent, "id" | "created_at" | "milestone_i
   );
 }
 
-export function getEvents(projectId?: string): (LedgerEvent & { project_title: string; milestone_title: string | null })[] {
-  const sql = `SELECT e.*, p.title AS project_title, m.title AS milestone_title
+export function addTransfer(t: Omit<Transfer, "id" | "checked_at" | "created_at" | "item_id">) {
+  conn()
+    .prepare(`INSERT OR IGNORE INTO transfers VALUES (?,?,?,?,?,NULL,?,?,?,?)`)
+    .run(randomUUID(), t.project_id, t.milestone_id, t.kind, t.paypal_id, t.amount, t.status, now(), now());
+}
+
+export function getTransfer(paypalId: string): Transfer | undefined {
+  const r = conn().prepare(`SELECT * FROM transfers WHERE paypal_id = ?`).get(paypalId);
+  return r ? plain<Transfer>(r) : undefined;
+}
+
+export function getTransfers(where: { projectId?: string; pendingOnly?: boolean } = {}): Transfer[] {
+  const cond = [where.projectId ? "project_id = ?" : "", where.pendingOnly ? `status IN (${PENDING_SQL})` : ""].filter(Boolean);
+  const sql = `SELECT * FROM transfers ${cond.length ? "WHERE " + cond.join(" AND ") : ""} ORDER BY created_at`;
+  return (where.projectId ? conn().prepare(sql).all(where.projectId) : conn().prepare(sql).all()).map(plain<Transfer>);
+}
+
+export function updateTransfer(paypalId: string, patch: { status?: string; item_id?: string | null }) {
+  conn()
+    .prepare(`UPDATE transfers SET status = COALESCE(?, status), item_id = COALESCE(?, item_id), checked_at = ? WHERE paypal_id = ?`)
+    .run(patch.status ?? null, patch.item_id ?? null, now(), paypalId);
+}
+
+const PENDING_SQL = PENDING_STATUSES.map((s) => `'${s}'`).join(",");
+
+/** Records a webhook delivery; false if this event id was already handled. */
+export function markWebhookEvent(id: string, type: string): boolean {
+  return conn().prepare(`INSERT OR IGNORE INTO webhook_events VALUES (?,?,?)`).run(id, type, now()).changes > 0;
+}
+
+export function getEvents(
+  projectId?: string,
+): (LedgerEvent & { project_title: string; milestone_title: string | null; paypal_status: string | null })[] {
+  const sql = `SELECT e.*, p.title AS project_title, m.title AS milestone_title, t.status AS paypal_status
                FROM events e JOIN projects p ON p.id = e.project_id
                LEFT JOIN milestones m ON m.id = e.milestone_id
+               LEFT JOIN transfers t ON t.paypal_id = e.paypal_ref
                ${projectId ? "WHERE e.project_id = ?" : ""}
                ORDER BY e.created_at DESC`;
   return (projectId ? conn().prepare(sql).all(projectId) : conn().prepare(sql).all()).map(plain) as never;

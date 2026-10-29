@@ -140,3 +140,34 @@ export async function refundCapture(opts: {
   );
   return { refundId: r.id, status: r.status };
 }
+
+export async function getPayoutBatch(batchId: string) {
+  const r = await call<{
+    batch_header: { batch_status: string };
+    items?: { payout_item_id: string; transaction_status: string }[];
+  }>("GET", `/v1/payments/payouts/${batchId}`);
+  const item = r.items?.[0];
+  return { batchStatus: r.batch_header.batch_status, itemId: item?.payout_item_id ?? null, itemStatus: item?.transaction_status ?? null };
+}
+
+export async function getRefund(refundId: string) {
+  const r = await call<{ id: string; status: string }>("GET", `/v2/payments/refunds/${refundId}`);
+  return { refundId: r.id, status: r.status };
+}
+
+// PayPal signs every webhook delivery; ask PayPal to check the signature against our webhook id
+// rather than trusting the request body.
+export async function verifyWebhookSignature(headers: Headers, rawBody: string) {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+  if (!webhookId) throw new Error("PAYPAL_WEBHOOK_ID is not set");
+  const r = await call<{ verification_status: string }>("POST", "/v1/notifications/verify-webhook-signature", {
+    auth_algo: headers.get("paypal-auth-algo"),
+    cert_url: headers.get("paypal-cert-url"),
+    transmission_id: headers.get("paypal-transmission-id"),
+    transmission_sig: headers.get("paypal-transmission-sig"),
+    transmission_time: headers.get("paypal-transmission-time"),
+    webhook_id: webhookId,
+    webhook_event: JSON.parse(rawBody),
+  });
+  return r.verification_status === "SUCCESS";
+}

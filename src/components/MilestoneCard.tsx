@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { Project, Verdict } from "@/lib/db";
+import type { Project, Transfer, Verdict } from "@/lib/db";
+import { PENDING_STATUSES, isSettled } from "@/lib/status";
 import {
   clientReleaseAction,
   freelancerStatementAction,
@@ -16,6 +17,30 @@ import { FundButton } from "./FundButton";
 import type { MilestoneView, Role } from "./Workspace";
 
 const field = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand";
+
+// A payout or refund with the status PayPal reports for it, which updates live while settling.
+function TransferRow({ t, currency }: { t: Transfer; currency: string }) {
+  const settled = isSettled(t.status);
+  const pending = PENDING_STATUSES.includes(t.status);
+  return (
+    <li className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <span className={t.kind === "payout" ? "font-medium text-ok" : "font-medium text-ink-soft"}>
+        {t.kind === "payout" ? "Paid" : "Refunded"} {money(t.amount, currency)}
+      </span>
+      <span className="text-ink-soft">via PayPal {t.kind === "payout" ? "Payouts" : "refund"}</span>
+      <span
+        className={cx(
+          "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+          settled ? "bg-ok-soft text-ok" : pending ? "bg-warn-soft text-warn" : "bg-bad-soft text-bad",
+        )}
+      >
+        {settled ? "✓ " : pending ? "… " : ""}
+        {settled ? "Confirmed by PayPal" : pending ? "Settling with PayPal" : t.status}
+      </span>
+      <span className="font-mono text-[11px] text-ink-soft">{t.item_id ?? t.paypal_id}</span>
+    </li>
+  );
+}
 
 function useAction() {
   const router = useRouter();
@@ -259,11 +284,12 @@ export function MilestoneCard({
         ))}
       </ul>
 
-      {(m.released > 0 || m.refunded > 0) && (
-        <div className="flex gap-4 text-sm">
-          {m.released > 0 && <span className="text-ok">Paid {money(m.released, project.currency)} via PayPal Payouts</span>}
-          {m.refunded > 0 && <span className="text-ink-soft">Refunded {money(m.refunded, project.currency)}</span>}
-        </div>
+      {m.transfers.length > 0 && (
+        <ul className="space-y-1.5 text-sm">
+          {m.transfers.map((t) => (
+            <TransferRow key={t.id} t={t} currency={project.currency} />
+          ))}
+        </ul>
       )}
 
       {latest?.verdict && <VerdictReport v={latest.verdict} />}

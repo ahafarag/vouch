@@ -68,6 +68,8 @@ Agents never get unrestricted access to money:
 - Every Payout and Refund carries a deterministic **`PayPal-Request-Id`** idempotency key, so a retried call can't pay twice.
 - Auto-release requires the verifier to be ≥80% confident. Anything less goes to the client for a decision.
 - Every action (human, AI or PayPal) is written to an audit ledger with PayPal IDs.
+- Nothing counts as paid until PayPal says so: each payout and refund is tracked until PayPal confirms it, through **signature-verified webhooks** (`/api/paypal/webhook`, verified with PayPal's verify-webhook-signature API, each event applied once) with polling as a fallback.
+- The verifier fetches freelancer-supplied URLs from the server, so in production it refuses anything that resolves to a private, loopback or link-local address, checking every redirect hop.
 
 ## PayPal integration
 
@@ -79,6 +81,7 @@ Agents never get unrestricted access to money:
 | **Orders v2**: create + capture | Escrow funding (`src/lib/paypal.ts`) |
 | **Payouts API** | Releasing escrow to the freelancer's PayPal email |
 | **Payments v2**: capture refund (full and partial) | Returning escrow to the client, including split rulings |
+| **Webhooks** (`PAYMENT.PAYOUTS-ITEM.*`, `PAYMENT.CAPTURE.REFUNDED`) + **verify-webhook-signature** | Confirming each payout and refund settled; the UI updates live from "Settling with PayPal" to "Confirmed by PayPal" |
 | **PayPal Agent Toolkit** (`@paypal/agent-toolkit`) | Settlement agent's read tools (`get_order`, `get_refund`) for checking state against PayPal before moving money. The toolkit targets AI SDK v4, so `src/lib/ai.ts` adapts its tools to AI SDK v7 |
 
 ## AI tools used
@@ -88,7 +91,7 @@ Agents never get unrestricted access to money:
 
 ## Sponsor tools
 
-- **AG Grid**: the `/ledger` page is an audit grid of every escrow event across all contracts, with filtering, quick search and color-coded money flows.
+- **AG Grid + AG Charts**: the `/ledger` page is an escrow dashboard. Three AG Charts show where the money is (donut), escrow by contract (stacked bars; click a bar to filter the grid to that contract) and the escrow balance over time. The AG Grid audit trail below has column filters, quick search, color-coded money flows, a live PayPal status column, a pinned totals row that recalculates for whatever is filtered, and CSV export.
 - **Render**: one-click deploy through `render.yaml`.
 
 ## Run it locally
@@ -130,7 +133,7 @@ src/components/                Workspace, milestone cards, PayPal button, AG Gri
 
 ## What's next
 
-- PayPal **Multiparty / marketplace onboarding**, so funds settle straight to the freelancer's account without a platform payout step
+- PayPal **Multiparty** with seller onboarding and **delayed disbursement**: each milestone's funds stay with PayPal until the agents release them, so Vouch never takes custody of the money. This is the production path; the prototype holds sandbox funds in the platform's business account
 - Vaulting so clients can pre-authorize a whole contract
 - Verifier plugins for Figma, app-store builds and test suites (run the freelancer's tests in a sandbox)
 - An appeal path that escalates to a human reviewer for high-value disputes

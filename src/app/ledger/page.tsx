@@ -1,9 +1,11 @@
 import { getEvents } from "@/lib/db";
 import { LedgerGrid } from "@/components/LedgerGrid";
+import { syncPending } from "@/lib/transfers";
 
 export const dynamic = "force-dynamic";
 
-export default function LedgerPage() {
+export default async function LedgerPage() {
+  await syncPending();
   const events = getEvents();
   return (
     <div className="space-y-4">

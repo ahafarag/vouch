@@ -1,13 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import type { Dispute, LedgerEvent, Milestone, Project, Submission } from "@/lib/db";
+import { useRouter } from "next/navigation";
+import type { Dispute, LedgerEvent, Milestone, Project, Submission, Transfer } from "@/lib/db";
+import { PENDING_STATUSES } from "@/lib/status";
 import { Card, cx, money } from "./ui";
 import { MilestoneCard } from "./MilestoneCard";
 import { PayPalProvider } from "./FundButton";
 
 export type Role = "client" | "freelancer";
-export type MilestoneView = Milestone & { submissions: Submission[]; dispute: Dispute | null };
+export type MilestoneView = Milestone & { submissions: Submission[]; dispute: Dispute | null; transfers: Transfer[] };
 
 const actorStyle: Record<string, [string, string]> = {
   client: ["C", "bg-brand-soft text-brand"],
@@ -32,6 +35,15 @@ export function Workspace({
   paypalClientId: string;
   model: string;
 }) {
+  const router = useRouter();
+  const settling = milestones.some((m) => m.transfers.some((t) => PENDING_STATUSES.includes(t.status)));
+  // While PayPal is still settling a payout or refund, re-render so its confirmed status appears live.
+  useEffect(() => {
+    if (!settling) return;
+    const t = setInterval(() => router.refresh(), 4000);
+    return () => clearInterval(t);
+  }, [settling, router]);
+
   const sum = (f: (m: Milestone) => number) => milestones.reduce((s, m) => s + f(m), 0);
   const total = sum((m) => m.amount);
   const escrowed = sum((m) => (m.capture_id ? m.amount - m.released - m.refunded : 0));

@@ -23,7 +23,7 @@ export default function Home() {
           </h1>
           <p className="text-lg text-ink-soft">
             Vouch is milestone escrow on PayPal run by AI agents. They draft the contract, check the work and move the money,
-            with fees closer to 2% than the 10–20% marketplaces charge.
+            with no 10–20% marketplace commission on top.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/new" className="rounded-lg bg-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-ink/90">
@@ -50,6 +50,39 @@ export default function Home() {
               </li>
             ))}
           </ol>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <Card className="space-y-3 p-5">
+          <h2 className="font-semibold">What a $2,000 job costs the freelancer</h2>
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-ink-soft">Freelance marketplace commission (10–20%)</dt>
+              <dd className="font-semibold text-bad">$200–$400</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-ink-soft">Vouch commission</dt>
+              <dd className="font-semibold text-ok">$0</dd>
+            </div>
+          </dl>
+          <p className="text-xs text-ink-soft">
+            Only PayPal&apos;s standard processing and payout fees apply. The AI review of a milestone costs cents in
+            model usage, not a percentage of the job.
+          </p>
+        </Card>
+        <Card className="space-y-3 p-5">
+          <h2 className="font-semibold">How the money is held</h2>
+          <p className="text-sm text-ink-soft">
+            In this prototype, each milestone is captured with PayPal Checkout into the platform&apos;s sandbox business
+            account, then released with PayPal Payouts or returned with a refund. Each payout and refund is confirmed with PayPal through signed webhooks, with polling as a
+            fallback.
+          </p>
+          <p className="text-sm text-ink-soft">
+            In production, Vouch runs on <span className="font-medium text-ink">PayPal Multiparty</span>: freelancers onboard
+            as sellers, and delayed disbursement keeps each milestone&apos;s funds with PayPal until the agents release them.
+            Vouch never takes custody of the money.
+          </p>
         </Card>
       </section>
 

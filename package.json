@@ -17,6 +17,8 @@
     "@ai-sdk/openai": "^4.0.105",
     "@paypal/agent-toolkit": "^1.11.0",
     "@paypal/react-paypal-js": "^10.6.1",
+    "ag-charts-community": "^14.2.0",
+    "ag-charts-react": "^14.2.0",
     "ag-grid-community": "^36.2.0",
     "ag-grid-react": "^36.2.0",
     "ai": "^7.0.157",

@@ -1,4 +1,6 @@
 import { generateText, Output, stepCountIs, tool, type UserContent } from "ai";
+import { lookup } from "node:dns/promises";
+import { BlockList, isIP } from "node:net";
 import { z } from "zod";
 import { model } from "../ai";
 import type { Milestone, Submission, Verdict } from "../db";
@@ -27,6 +29,42 @@ function htmlToText(html: string) {
     .trim();
 }
 
+// The verifier fetches URLs chosen by the freelancer, from our server. In production, refuse
+// anything that resolves to a private, loopback or link-local address (e.g. cloud metadata).
+const privateRanges = new BlockList();
+for (const [net, bits] of [
+  ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16],
+  ["172.16.0.0", 12], ["192.168.0.0", 16], ["198.18.0.0", 15], ["224.0.0.0", 4],
+] as const) privateRanges.addSubnet(net, bits, "ipv4");
+for (const [net, bits] of [["::", 128], ["::1", 128], ["fc00::", 7], ["fe80::", 10]] as const)
+  privateRanges.addSubnet(net, bits, "ipv6");
+
+export async function assertPublicUrl(raw: string) {
+  const u = new URL(raw);
+  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error(`Only http(s) links can be inspected`);
+  if (process.env.NODE_ENV !== "production") return;
+  const host = u.hostname.replace(/^[|]$/g, "");
+  const addrs = isIP(host) ? [{ address: host, family: isIP(host) }] : await lookup(host, { all: true });
+  for (const { address, family } of addrs) {
+    const v4 = address.match(/^::ffff:(d+.d+.d+.d+)$/)?.[1];
+    if (privateRanges.check(v4 ?? address, v4 || family === 4 ? "ipv4" : "ipv6"))
+      throw new Error(`${u.hostname} is not a public address`);
+  }
+}
+
+// fetch() with redirects checked hop by hop, so a public URL can't bounce to a private one.
+async function safeFetch(url: string, init: RequestInit) {
+  let current = url;
+  for (let hop = 0; hop < 5; hop++) {
+    await assertPublicUrl(current);
+    const res = await fetch(current, { ...init, redirect: "manual" });
+    const next = res.headers.get("location");
+    if (res.status < 300 || res.status >= 400 || !next) return res;
+    current = new URL(next, current).toString();
+  }
+  throw new Error("Too many redirects");
+}
+
 async function inspectUrl(url: string): Promise<string> {
   const gh = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/#?]+)/);
   const headers = { "User-Agent": "Vouch-Verifier/1.0" };
@@ -52,7 +90,7 @@ async function inspectUrl(url: string): Promise<string> {
       `README:\n${readme.slice(0, 8000)}`,
     ].join("\n\n");
   }
-  const res = await fetch(url, { headers, signal, redirect: "follow" });
+  const res = await safeFetch(url, { headers, signal });
   const type = res.headers.get("content-type") ?? "";
   const body = await res.text();
   const text = type.includes("html") ? htmlToText(body) : body;
