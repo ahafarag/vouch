@@ -26,9 +26,13 @@ export async function POST(request: Request) {
   } catch (e) {
     console.error("PayPal webhook verification error:", e);
   }
-  if (!verified) return Response.json({ error: "Invalid signature" }, { status: 400 });
+  if (!verified) {
+    console.warn(`PayPal webhook rejected: invalid signature (transmission ${request.headers.get("paypal-transmission-id")})`);
+    return Response.json({ error: "Invalid signature" }, { status: 400 });
+  }
 
   const event = JSON.parse(raw) as WebhookEvent;
+  console.log(`PayPal webhook verified: ${event.event_type} ${event.id}`);
   if (!db.markWebhookEvent(event.id, event.event_type)) return Response.json({ ok: true, duplicate: true });
 
   const r = event.resource;
