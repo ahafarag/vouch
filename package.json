@@ -2,6 +2,7 @@
   "name": "vouch",
   "version": "0.1.0",
   "private": true,
+  "engines": { "node": ">=22.13" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,13 +10,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.92",
+    "@ai-sdk/openai": "^4.0.105",
+    "@paypal/agent-toolkit": "^1.11.0",
+    "@paypal/react-paypal-js": "^10.6.1",
+    "ag-grid-community": "^36.2.0",
+    "ag-grid-react": "^36.2.0",
+    "ai": "^7.0.157",
     "next": "16.4.3",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // The PayPal agent toolkit pulls in LangChain/OpenAI/MCP deps; keep it out of the bundle.
+  serverExternalPackages: ["@paypal/agent-toolkit"],
   turbopack: {
     rules: {
       "*.css": {

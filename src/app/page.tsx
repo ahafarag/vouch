@@ -1,69 +1,89 @@
-import Image from "next/image";
+import Link from "next/link";
+import { listProjects } from "@/lib/db";
+import { Card, money } from "@/components/ui";
+import { loadDemoAction } from "./actions";
+
+export const dynamic = "force-dynamic";
+
+const steps = [
+  ["Describe the job", "An AI Contract Architect turns a plain-English brief into milestones with objective acceptance criteria."],
+  ["Fund with PayPal", "The client pays each milestone with PayPal Checkout. The money is held in escrow, not sent yet."],
+  ["AI verifies delivery", "A Verifier agent inspects the live site, repo or screenshots against every criterion and cites evidence."],
+  ["Agent settles", "A Settlement agent pays the freelancer via PayPal Payouts, or refunds or splits disputed funds after a binding AI ruling."],
+];
 
 export default function Home() {
+  const projects = listProjects();
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="space-y-12">
+      <section className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
+        <div className="space-y-5">
+          <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
+            Get paid for freelance work, without needing to trust a stranger.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg text-ink-soft">
+            Vouch is milestone escrow on PayPal run by AI agents. They draft the contract, check the work and move the money,
+            with fees closer to 2% than the 10–20% marketplaces charge.
           </p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/new" className="rounded-lg bg-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-ink/90">
+              Start a contract
+            </Link>
+            <form action={loadDemoAction}>
+              <button className="rounded-lg border border-line bg-white px-5 py-2.5 text-sm font-medium hover:bg-paper">
+                Load demo contract
+              </button>
+            </form>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <Card className="p-5">
+          <ol className="space-y-4">
+            {steps.map(([t, d], i) => (
+              <li key={t} className="flex gap-3">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-semibold text-brand">
+                  {i + 1}
+                </span>
+                <div>
+                  <div className="font-medium">{t}</div>
+                  <div className="text-sm text-ink-soft">{d}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Contracts</h2>
+        {projects.length === 0 ? (
+          <Card className="p-8 text-center text-sm text-ink-soft">
+            No contracts yet. Start one, or load the demo contract to see the full flow.
+          </Card>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {projects.map((p) => (
+              <Link key={p.id} href={`/p/${p.id}`}>
+                <Card className="space-y-3 p-5 transition hover:border-brand/40 hover:shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="font-medium">{p.title}</div>
+                    <div className="text-sm font-semibold">{money(p.total, p.currency)}</div>
+                  </div>
+                  <div className="text-sm text-ink-soft">
+                    {p.client_name} → {p.freelancer_name}
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-paper">
+                    <div className="h-full bg-ok" style={{ width: `${p.total ? (p.released / p.total) * 100 : 0}%` }} />
+                  </div>
+                  <div className="flex gap-4 text-xs text-ink-soft">
+                    <span>Paid out {money(p.released, p.currency)}</span>
+                    <span>In escrow {money(p.escrowed, p.currency)}</span>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
