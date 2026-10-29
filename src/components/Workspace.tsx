@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Dispute, LedgerEvent, Milestone, Project, Submission } from "@/lib/db";
 import { Card, cx, money } from "./ui";
 import { MilestoneCard } from "./MilestoneCard";
+import { PayPalProvider } from "./FundButton";
 
 export type Role = "client" | "freelancer";
 export type MilestoneView = Milestone & { submissions: Submission[]; dispute: Dispute | null };
@@ -76,11 +77,13 @@ export function Workspace({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-4">
-          {milestones.map((m) => (
-            <MilestoneCard key={m.id} m={m} project={project} role={role} paypalClientId={paypalClientId} />
-          ))}
-        </div>
+        <PayPalProvider clientId={paypalClientId} currency={project.currency}>
+          <div className="space-y-4">
+            {milestones.map((m) => (
+              <MilestoneCard key={m.id} m={m} project={project} role={role} paypalClientId={paypalClientId} />
+            ))}
+          </div>
+        </PayPalProvider>
         <Card className="h-fit p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Activity</h2>

@@ -59,7 +59,8 @@ Procedure:
    for the expected amount. If PayPal disagrees with Vouch's record, move no money and explain why.
 2. Execute exactly the instructed amounts with release_to_freelancer and/or refund_to_client. Write warm, specific notes.
 3. Optionally verify a refund with paypal_get_refund.
-4. Finish with a one-paragraph summary of what moved where, citing PayPal ids.`;
+4. Finish with a short plain-text summary (no markdown, no bullet points; it is shown verbatim in the activity feed)
+   of what moved where, citing PayPal ids.`;
 
 export async function executeSettlement(milestoneId: string, instruction: string) {
   const log: string[] = [];

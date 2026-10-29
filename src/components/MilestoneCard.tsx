@@ -274,7 +274,7 @@ export function MilestoneCard({
         (role === "client" ? (
           <div className="space-y-2">
             <p className="text-sm text-ink-soft">Fund this milestone. The money is held in escrow until the work is verified.</p>
-            <FundButton milestoneId={m.id} clientId={paypalClientId} currency={project.currency} />
+            <FundButton milestoneId={m.id} clientId={paypalClientId} />
           </div>
         ) : (
           <p className="text-sm text-ink-soft">Waiting for the client to fund escrow before you start.</p>

@@ -128,6 +128,8 @@ db.exec(`
 
 const now = () => new Date().toISOString();
 type Row = Record<string, unknown>;
+// node:sqlite returns null-prototype rows, which React refuses to pass to Client Components.
+const plain = <T>(r: unknown) => ({ ...(r as object) }) as T;
 
 function toMilestone(r: Row): Milestone {
   return { ...(r as unknown as Milestone), criteria: JSON.parse(r.criteria as string) };
@@ -176,11 +178,13 @@ export function listProjects(): (Project & { total: number; released: number; es
        FROM projects p LEFT JOIN milestones m ON m.project_id = p.id
        GROUP BY p.id ORDER BY p.created_at DESC`,
     )
-    .all() as never;
+    .all()
+    .map(plain) as never;
 }
 
 export function getProject(id: string): Project | undefined {
-  return db.prepare(`SELECT * FROM projects WHERE id = ?`).get(id) as Project | undefined;
+  const r = db.prepare(`SELECT * FROM projects WHERE id = ?`).get(id);
+  return r ? plain<Project>(r) : undefined;
 }
 
 export function getMilestones(projectId: string): Milestone[] {
@@ -260,5 +264,5 @@ export function getEvents(projectId?: string): (LedgerEvent & { project_title: s
                LEFT JOIN milestones m ON m.id = e.milestone_id
                ${projectId ? "WHERE e.project_id = ?" : ""}
                ORDER BY e.created_at DESC`;
-  return (projectId ? db.prepare(sql).all(projectId) : db.prepare(sql).all()) as never;
+  return (projectId ? db.prepare(sql).all(projectId) : db.prepare(sql).all()).map(plain) as never;
 }
