@@ -2,12 +2,15 @@
   "name": "vouch",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check": "tsx --env-file=.env.local scripts/check-setup.mts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.92",
@@ -30,6 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

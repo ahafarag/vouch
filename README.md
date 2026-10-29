@@ -97,6 +97,7 @@ Requires **Node 22.13+** (uses the built-in `node:sqlite`, so there's no databas
 git clone https://github.com/ahafarag/vouch.git && cd vouch
 npm install
 cp .env.example .env.local   # fill in the values below
+npm run check                # verifies PayPal + AI keys
 npm run dev                  # http://localhost:3000
 ```
 
