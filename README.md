@@ -1,6 +1,10 @@
 # Vouch: AI escrow for freelance work, built on PayPal
 
+![Vouch: AI escrow for freelance work](public/cover.png)
+
 > Get paid for freelance work, without needing to trust a stranger.
+
+Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) ("Build what's next with PayPal and AI"). **Status:** active development during the hackathon; all payments run in the PayPal sandbox.
 
 **Vouch** is milestone escrow run by AI agents on top of PayPal. A client describes a job in plain English. An AI **Contract Architect** turns the brief into milestones with objective acceptance criteria. The client funds each milestone with **PayPal Checkout**, and the money is held in escrow. When the freelancer delivers, an AI **Verifier** inspects the live site, GitHub repo or screenshots against each criterion. An AI **Settlement Agent** then pays the freelancer through **PayPal Payouts**. If the parties disagree, an AI **Mediator** issues a binding ruling, and the agent splits the escrow with a partial payout plus a partial **refund**.
 
@@ -14,6 +18,8 @@
 Vouch lets any two people anywhere do a deal with the trust layer of a marketplace and none of the lock-in. A neutral AI reads the contract, looks at the actual work, and moves the money.
 
 ## How it works
+
+![How it works](docs/how-it-works.png)
 
 ```mermaid
 sequenceDiagram
@@ -51,6 +57,8 @@ sequenceDiagram
 
 ### Safety: AI decides, code enforces
 
+![The AI decides. The code enforces.](docs/safety.png)
+
 Agents never get unrestricted access to money:
 
 - Each agent run is **bound to one milestone** by a closure. The model never picks which escrow to touch.
@@ -60,6 +68,8 @@ Agents never get unrestricted access to money:
 - Every action (human, AI or PayPal) is written to an audit ledger with PayPal IDs.
 
 ## PayPal integration
+
+![Built on PayPal + Claude](docs/stack.png)
 
 | PayPal capability | Used for |
 |---|---|
@@ -84,7 +94,7 @@ Agents never get unrestricted access to money:
 Requires **Node 22.13+** (uses the built-in `node:sqlite`, so there's no database to install).
 
 ```bash
-git clone <this repo> && cd vouch
+git clone https://github.com/ahafarag/vouch.git && cd vouch
 npm install
 cp .env.example .env.local   # fill in the values below
 npm run dev                  # http://localhost:3000
