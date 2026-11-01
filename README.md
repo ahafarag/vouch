@@ -4,7 +4,7 @@
 
 > Get paid for freelance work, without needing to trust a stranger.
 
-Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) ("Build what's next with PayPal and AI") by Abdelrahman Farag and Alaa Kotb. All payments run in the PayPal sandbox.
+Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) ("Build what's next with PayPal and AI") by Abdelrahman Farag and Alaa Ahmed. All payments run in the PayPal sandbox.
 
 **Live demo:** https://vouch-crnw.onrender.com. It's hosted on Render's free plan: if it has been idle, the first load can take up to a minute, and demo data resets when the server restarts. **Sandbox buyer login** for PayPal checkout: `sb-qcxbo35513902@personal.example.com` / `U)39&Tpb`. See the [3-minute walkthrough](#3-minute-walkthrough).
 
