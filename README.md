@@ -6,6 +6,8 @@
 
 Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) ("Build what's next with PayPal and AI") by Abdelrahman Farag and Alaa Ahmed. All payments run in the PayPal sandbox.
 
+**Demo video (3 min):** https://youtu.be/LZDNmZIca2Q
+
 **Live demo:** https://vouch-crnw.onrender.com. It's hosted on Render's free plan: if it has been idle, the first load can take up to a minute, and demo data resets when the server restarts. **Sandbox buyer login** for PayPal checkout: `sb-qcxbo35513902@personal.example.com` / `U)39&Tpb`. See the [3-minute walkthrough](#3-minute-walkthrough).
 
 **Vouch** is milestone escrow run by AI agents on top of PayPal. A client describes a job in plain English. An AI **Contract Architect** turns the brief into milestones with objective acceptance criteria. The client funds each milestone with **PayPal Checkout**, and the money is held in escrow. When the freelancer delivers, an AI **Verifier** inspects the live site, GitHub repo or screenshots against each criterion. An AI **Settlement Agent** then pays the freelancer through **PayPal Payouts**. If the parties disagree, an AI **Mediator** issues a binding ruling, and the agent splits the escrow with a partial payout plus a partial **refund**.
